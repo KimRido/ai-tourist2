@@ -24,6 +24,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+//1.LoginFilter
+//2.UserService
+//3.LoginSuccessHandler
+
+//1.UserService
+//2.SocialSuccessHandler
+//3.CustomOAuth2User
 public class LoginFilter extends AbstractAuthenticationProcessingFilter {
 
     public static final String SPRING_SECURITY_FORM_USERNAME_KEY = "username";

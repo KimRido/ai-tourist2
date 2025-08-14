@@ -1,6 +1,10 @@
 package com.example.backend.config;
 
+import com.example.backend.domain.jwt.service.JwtService;
+import com.example.backend.filter.JWTFilter;
 import com.example.backend.filter.LoginFilter;
+import com.example.backend.handler.RefreshTokenLogoutHandler;
+import com.example.backend.util.JWTUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -16,18 +20,28 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
-    private final AuthenticationSuccessHandler authenticationSuccessHandler;
+    private final AuthenticationSuccessHandler loginSuccessHandler;
+    private final AuthenticationSuccessHandler socialSuccessHandler;
+    private final JwtService jwtService;
+    private final JWTUtil jwtUtil;
+
 
     public SecurityConfig(AuthenticationConfiguration authenticationConfiguration,
-                          @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler authenticationSuccessHandler) {
+                          @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
+                          @Qualifier("socialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler, JWTUtil jwtUtil, JwtService jwtService, JWTUtil jwtUtil1)
+    {
         this.authenticationConfiguration = authenticationConfiguration;
-        this.authenticationSuccessHandler = authenticationSuccessHandler;
+        this.loginSuccessHandler = loginSuccessHandler;
+        this.socialSuccessHandler = socialSuccessHandler;
+        this.jwtService = jwtService;
+        this.jwtUtil = jwtUtil1;
     }
 
     // 커스텀 자체 로그인 필터를 위한 AuthenticationManager Bean 수동 등록
@@ -51,6 +65,10 @@ public class SecurityConfig {
 
         // CORS 설정
 
+        // 기본 로그아웃 필터 + 커스텀 Refresh 토큰 삭제 핸들러 추가
+        http
+                .logout(logout -> logout.addLogoutHandler(new RefreshTokenLogoutHandler(jwtService)));
+
         // 기본 Form 기반 인증 필터들 disable
         http
                 .formLogin(AbstractHttpConfigurer::disable);
@@ -58,6 +76,10 @@ public class SecurityConfig {
         // 기본 Basic 인증 필터 disable
         http
                 .httpBasic(AbstractHttpConfigurer::disable);
+
+        http
+                .oauth2Login(oauth2 -> oauth2.successHandler(socialSuccessHandler));
+
 
         // 인가
         http
@@ -77,7 +99,10 @@ public class SecurityConfig {
 
         // 커스텀 필터 추가
         http
-                .addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), authenticationSuccessHandler), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JWTFilter(jwtUtil), LogoutFilter.class);
+
+        http
+                .addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler), UsernamePasswordAuthenticationFilter.class);
 
         // 세션 필터 설정 (STATELESS)
         http

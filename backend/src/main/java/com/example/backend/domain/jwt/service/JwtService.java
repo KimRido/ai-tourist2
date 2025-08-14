@@ -1,5 +1,7 @@
 package com.example.backend.domain.jwt.service;
 
+import com.example.backend.domain.jwt.dto.JWTResponseDTO;
+import com.example.backend.domain.jwt.dto.RefreshRequestDTO;
 import com.example.backend.domain.jwt.entity.RefreshEntity;
 import com.example.backend.domain.jwt.repository.RefreshRepository;
 import com.example.backend.util.JWTUtil;
@@ -18,7 +20,7 @@ public class JwtService {
         this.refreshRepository = refreshRepository;
     }
 
-    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답 <-- 이건 추후에 작성
+    // 소셜 로그인 성공 후 쿠키(Refresh) -> 헤더 방식으로 응답
     @Transactional
     public JWTResponseDTO cookie2Header(HttpServletRequest request, HttpServletResponse response) {
 
@@ -77,7 +79,37 @@ public class JwtService {
     }
 
 
-    // Refresh 토큰으로 Access 토큰 재발급 로직 (Rotate 포함) <-- 이건 추후에 작성
+    // Refresh 토큰으로 Access 토큰 재발급 로직 (Rotate 포함)
+    @Transactional
+    public JWTResponseDTO refreshRotate(RefreshRequestDTO dto) {
+
+        String refreshToken = dto.getRefreshToken();
+
+        // Refresh 토큰 검증
+        Boolean isValid = JWTUtil.isValid(refreshToken, false);
+        if (!isValid) {
+            throw new RuntimeException("유효하지 않은 refreshToken입니다.");
+        }
+
+        // 정보 추출
+        String username = JWTUtil.getUsername(refreshToken);
+        String role = JWTUtil.getRole(refreshToken);
+
+        // 토큰 생성
+        String newAccessToken = JWTUtil.createJWT(username, role, true);
+        String newRefreshToken = JWTUtil.createJWT(username, role, false);
+
+        // 기존 Refresh 토큰 DB 삭제 후 신규 추가
+        RefreshEntity newRefreshEntity = RefreshEntity.builder()
+                .username(username)
+                .refresh(newRefreshToken)
+                .build();
+
+        removeRefresh(refreshToken);
+        refreshRepository.save(newRefreshEntity);
+
+        return new JWTResponseDTO(newAccessToken, newRefreshToken);
+    }
 
     // JWT Refresh 토큰 발급 후 저장 메소드
     @Transactional

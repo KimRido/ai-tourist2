@@ -39,18 +39,15 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler loginSuccessHandler;
     private final AuthenticationSuccessHandler socialSuccessHandler;
     private final JwtService jwtService;
-    private final JWTUtil jwtUtil;
-
 
     public SecurityConfig(AuthenticationConfiguration authenticationConfiguration,
                           @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
-                          @Qualifier("socialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler, JWTUtil jwtUtil, JwtService jwtService, JWTUtil jwtUtil1)
+                          @Qualifier("socialSuccessHandler") AuthenticationSuccessHandler socialSuccessHandler, JwtService jwtService)
     {
         this.authenticationConfiguration = authenticationConfiguration;
         this.loginSuccessHandler = loginSuccessHandler;
         this.socialSuccessHandler = socialSuccessHandler;
         this.jwtService = jwtService;
-        this.jwtUtil = jwtUtil1;
     }
 
     // 커스텀 자체 로그인 필터를 위한 AuthenticationManager Bean 수동 등록
@@ -143,7 +140,7 @@ public class SecurityConfig {
 
         // 커스텀 필터 추가
         http
-                .addFilterBefore(new JWTFilter(jwtUtil), LogoutFilter.class);
+                .addFilterBefore(new JWTFilter(), LogoutFilter.class);
 
         http
                 .addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler), UsernamePasswordAuthenticationFilter.class);

@@ -24,11 +24,9 @@ import java.io.IOException;
 @Qualifier("SocialSuccessHandler")
 public class SocialSuccessHandler implements AuthenticationSuccessHandler {
 
-    private final JWTUtil jwtUtil;
     private final JwtService jwtService;
 
-    public SocialSuccessHandler(JWTUtil jwtUtil, JwtService jwtService) {
-        this.jwtUtil = jwtUtil;
+    public SocialSuccessHandler(JwtService jwtService) {
         this.jwtService = jwtService;
     }
 
